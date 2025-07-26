@@ -4,7 +4,12 @@ BOARD        = basys3
 OUTPUT_DIR   = BUILD
 
 XILINX_ROOT  = /tools/xilinx/2025.1
-VIVADO_CMD   = $(XILINX_ROOT)/Vivado/bin/vivado
+VIVADO_EXE   = $(XILINX_ROOT)/Vivado/bin/vivado
+define TCL
+$(VIVADO_EXE) -mode batch -notrace -source script/$(1).tcl \
+  -journal $(OUTPUT_DIR)/$(1).jou -log $(OUTPUT_DIR)/$(1).log \
+  -tclargs
+endef
 
 RTL_SOURCES  = $(wildcard rtl/*.vhd)
 CONSTRAINTS  = $(wildcard constraint/*.xdc)
@@ -13,25 +18,27 @@ SYNTH_DCP    = $(OUTPUT_DIR)/post_synth.dcp
 IMPL_DCP     = $(OUTPUT_DIR)/post_route.dcp
 BITSTREAM    = $(OUTPUT_DIR)/$(TOP_MODULE).bit
 
-all: $(BITSTREAM)
+.FORCE: bitstream synthesis implementation bitstream
 
-$(OUTPUT_DIR):
-	mkdir -p $(OUTPUT_DIR)
+all: bitstream
 
-synth.tcl: TCL_ARGS := "$(RTL_SOURCES)" "$(CONSTRAINTS)" $(TOP_MODULE) $(PART) $(OUTPUT_DIR)
-impl.tcl: TCL_ARGS := $(SYNTH_DCP) $(OUTPUT_DIR)
-bitstream.tcl: TCL_ARGS := $(IMPL_DCP) $(OUTPUT_DIR) $(TOP_MODULE)
-
-$(SYNTH_DCP): $(OUTPUT_DIR) synth.tcl
-$(IMPL_DCP): $(SYNTH_DCP) impl.tcl
-$(BITSTREAM): $(IMPL_DCP) bitstream.tcl
+synthesis: $(SYNTH_DCP)
+implementation: $(IMPL_DCP)
+bitstream: $(BITSTREAM)
 
 clean:
 	rm -rf $(OUTPUT_DIR)
 	rm -rf .Xil
 	rm -f *.jou *.log
 
-%.tcl: script/%.tcl
-	$(VIVADO_CMD) -mode batch -notrace -source $< \
-	  -journal $(OUTPUT_DIR)/$*.jou -log $(OUTPUT_DIR)/$*.log \
-	  -tclargs $(TCL_ARGS)
+$(SYNTH_DCP): $(RTL_SOURCES) $(CONSTRAINTS) | $(OUTPUT_DIR)
+	$(call TCL,synth) "$(RTL_SOURCES)" "$(CONSTRAINTS)" $(TOP_MODULE) $(PART) $(OUTPUT_DIR) \
+	  && touch $@ # ensure timestamp is updated
+
+$(IMPL_DCP): synthesis
+	$(call TCL,impl) $(SYNTH_DCP) $(OUTPUT_DIR) \
+	  && touch $@ # ensure timestamp is updated
+
+$(BITSTREAM): implementation
+	$(call TCL,bitstream) $(IMPL_DCP) $(TOP_MODULE) $(OUTPUT_DIR) \
+	  && touch $@ # ensure timestamp is updated

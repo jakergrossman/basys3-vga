@@ -1,27 +1,19 @@
-if { $argc != 3 } {
-    puts "ERROR: invalid number of arguments"
-    puts "usage: bistream.tcl route_dcp output_dir top_module"
-    exit 1
-}
+# bitstream.tcl
+# non-project script for bitstream generation
 
-set route_dcp [lindex $argv 0]
-set output_dir [lindex $argv 1]
-set top_module [lindex $argv 2]
+source script/common.tcl
+set argstr "route_dcp top_module output_directory"
+narg_check [info script] $argc $argstr
 
-puts ">"
-puts ">  **********************************"
-puts ">  *       BITSTREAM GENERATION     *"
-puts ">  **********************************"
-puts ">"
+set route_dcp  [lindex $argv 0]
+set top_module [lindex $argv 1]
+set output_dir [lindex $argv 2]
+
+banner "BITSTREAM::START"
 
 open_checkpoint $route_dcp
 write_bitstream -force $output_dir/$top_module.bit
 
-puts ">"
-puts ">  **********************************"
-puts ">  * BITSTREAM GENERATION COMPLETE  *"
-puts ">  **********************************"
-puts ">"
-puts ">  bitstream: $top_module.bit"
-puts ">"
-puts ">"
+banner "BITSTREAM::FINISH" "bitstream" $top_module.bit
+
+exit

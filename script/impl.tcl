@@ -1,58 +1,37 @@
 # impl.tcl
 # non-project script for implementation
 
-if { $argc != 2 } {
-    puts "ERROR: invalid number of arguments"
-    puts "usage: impl.tcl synth_dcp output_dir"
-    exit 1
-}
+source script/common.tcl
+
+set argstr "synth_dcp output_dir"
+narg_check [info script] $argc $argstr
 
 set synth_dcp  [lindex $argv 0]
 set output_dir [lindex $argv 1]
 
-puts ">"
-puts ">  **********************************"
-puts ">  *         IMPLEMENTATION         *"
-puts ">  **********************************"
-puts ">"
-puts ">   synth input: $synth_dcp"
-puts ">"
-puts ">"
+banner "IMPLEMENTATION::BEGIN" \
+    "synth input" $synth_dcp
 
 open_checkpoint $synth_dcp
 
-puts ">"
-puts ">  **********************************"
-puts ">  *   IMPLEMENTATION::opt_design   *"
-puts ">  **********************************"
-puts ">"
+banner "IMPLEMENTATION::opt_design"
 opt_design
 
-puts ">"
-puts ">  **********************************"
-puts ">  *  IMPLEMENTATION::route_design  *"
-puts ">  **********************************"
-puts ">"
+banner "IMPLEMENTATION::route_design"
 route_design
 
-puts ">"
-puts ">  **********************************"
-puts ">  *    IMPLEMENTATION::reports     *"
-puts ">  **********************************"
-puts ">"
+banner "IMPLEMENTATION::reports" \
+    "timing" $output_dir/timing_summary.rpt \
+    "utilization" $output_dir/utilization.rpt
+
 report_timing_summary -file $output_dir/timing_summary.rpt
 report_utilization -file $output_dir/utilization.rpt
 
-puts ">>> writing checkpoint"
-puts ">"
-puts ">  **********************************"
-puts ">  *   IMPLEMENTATION::checkpoint   *"
-puts ">  **********************************"
-puts ">"
+banner "IMPLEMENTATION::write_checkpoint" \
+    "checkpoint" $output_dir/post_route.dcp
+
 write_checkpoint -force $output_dir/post_route.dcp
 
-puts ">"
-puts ">  **********************************"
-puts ">  *    IMPLEMENTATION COMPLETE     *"
-puts ">  **********************************"
-puts ">"
+banner "IMPLEMENTATION::FINISH"
+
+exit
